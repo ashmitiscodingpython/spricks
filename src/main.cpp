@@ -25,9 +25,11 @@ std::map<int, String> deviceIDs = {
   {75, "Technic Medium Servo"},
   {47, "Technic XL Motor"}
 };
+String port_names[4] = {"A", "B", "C", "D"};
 int ports[4] = {};
 bool connected = false;
 bool hubFound = false;
+bool requestSent = false;
 
 class AdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
     void onResult(BLEAdvertisedDevice device) {
@@ -63,13 +65,14 @@ void setup() {
 }
 
 void notify_call(BLERemoteCharacteristic *characteristic, uint8_t *data, size_t length, bool isNotify) {
+  if (data[2] == 4) {
     for (int i = 0; i < length; i++) {
       if (i == 4) {
         if (data[i] == 0) {
           if (data[3] < 4 && data[3] >= 0) {
             Serial.print(deviceIDs[ports[data[3]]]);
-            Serial.print(" disconnected from port number ");
-            Serial.print(data[3]);
+            Serial.print(" disconnected from port ");
+            Serial.print(port_names[data[3]]);
             Serial.println(".");
           } else {
             Serial.print("Port ");
@@ -80,12 +83,41 @@ void notify_call(BLERemoteCharacteristic *characteristic, uint8_t *data, size_t 
         } else {
           ports[data[3]] = data[5];
           Serial.print(deviceIDs[data[5]]);
-          Serial.print(" connected to port number ");
-          Serial.print(data[3]);
+          if (data[3] < 4 && data[3] >= 0) {
+            Serial.print(" connected to port ");
+            Serial.print(port_names[data[3]]);
+          } else {
+            Serial.print(" connected to port number ");
+            Serial.print(data[3]);
+          }
           Serial.println(".");
         }
       }
     }
+  } else if (data[2] == 0x43) {
+    for (int i = 0; i < length; i++) {
+      if (data[i] < 16) {
+        Serial.print("0");
+      }
+      Serial.print(data[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  } else if (data[2] == 0x45) {
+    Serial.print("The value of port ");
+    if (data[3] < 4 && data[3] > -1) {
+      Serial.print(port_names[data[3]]);
+    } else {
+      Serial.print(data[3]);
+    }
+    Serial.print(" is ");
+    Serial.print(data[4]);
+    Serial.print(" (");
+    Serial.print(data[0]);
+    Serial.println(" bytes long)");
+  } else {
+    Serial.println(data[2], HEX);
+  }
 }
 
 void loop() {
@@ -105,6 +137,10 @@ void loop() {
         BLEUUID("00001624-1212-efde-1623-785feabcd123")
       );
       lwp3->registerForNotify(notify_call);
+    }
+    if (connected and !requestSent) {
+      requestSent = true;
+      lwp3->writeValue({0x05, 0x00, 0x21, 0x00, 0x01});
     }
     scanner->clearResults();
     delay(1000);
