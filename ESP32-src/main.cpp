@@ -116,7 +116,14 @@ void notify_call(BLERemoteCharacteristic *characteristic, uint8_t *data, size_t 
     Serial.print(data[0]);
     Serial.println(" bytes long)");
   } else {
-    Serial.println(data[2], HEX);
+    for (int i = 0; i < length; i++) {
+      if (data[i] < 16) {
+        Serial.print("0");
+      }
+      Serial.print(data[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
   }
 }
 
@@ -140,7 +147,11 @@ void loop() {
     }
     if (connected and !requestSent) {
       requestSent = true;
-      lwp3->writeValue({0x05, 0x00, 0x21, 0x00, 0x01});
+      //uint8_t packet[] = {0x07, 0x00, 0x81, 0x00, 0x10, 0x01, 0x28}; motor A to 40%
+      //uint8_t packet[] = {0x0A, 0x00, 0x81, 0x50, 0x10, 0x51, 0x01, 0x00, 0x80, 0x80};
+      //uint8_t packet[] = {0x08, 0x00, 0x81, 0x50, 0x10, 0x51, 0x00, 0x01};
+      uint8_t packet[] = {0x08, 0x00, 0x81, 0x32, 0x11, 0x51, 0x00, 0x06};
+      lwp3->writeValue(packet, sizeof(packet), false);
     }
     scanner->clearResults();
     delay(1000);
