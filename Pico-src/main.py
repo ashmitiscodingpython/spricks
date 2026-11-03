@@ -1,12 +1,7 @@
-from machine import Pin, SPI
-
-led1 = Pin(28, Pin.OUT)
-led1.off()
-
+from machine import Pin, SPI, PWM
+import time
 from ST7735 import TFT, TFTColor
-
-lite = Pin(17, Pin.OUT)
-lite.on()
+import framebuf
 
 spi = SPI(
     0,
@@ -24,11 +19,60 @@ display = TFT(
     aDC=Pin(22)
 )
 
+lite = PWM(Pin(17, Pin.OUT))
+lite.freq(1000)
+lite.duty_u16(32768)
+
+WIDTH = 128
+HEIGHT = 160
+
+buffer = bytearray(160 * 128 * 2)
+
+canvas = framebuf.FrameBuffer(
+    buffer, 128, 160, framebuf.RGB565
+)
+
+canvas.fill(0)
+canvas.pixel(0, 0, 0xF800)
+print(list(buffer[:2]))
+
 display.initg()
 display.rgb(True)
-display.fill(TFT.GRAY)
-display.fillrect([39, 55], (50, 50), TFT.WHITE)
-display.fillcircle([64, 80], 20, TFT.RED)
+display.fill(display.WHITE)
+
+def update_display():
+    converted = bytearray(len(buffer))
+
+    for i in range(0, len(buffer), 2):
+        converted[i] = buffer[i + 1]
+        converted[i + 1] = buffer[i]
+
+    display.image(0, 0, WIDTH - 1, HEIGHT - 1, converted)
+
+def draw_icon(name, ys=0, xs=0):
+    exec(f"from generated import {name}")
+    WIDTH: int = eval(f"{name}.WIDTH")
+    HEIGHT: int = eval(f"{name}.HEIGHT")
+    PIXELS: bytearray = eval(f"{name}.PIXELS")
+    MASK: bytearray = eval(f"{name}.MASK")
+    ys -= 12
+    xs -= 12
+    for y in range(HEIGHT):
+        for x in range(WIDTH):
+            i = y * WIDTH + x
+            if MASK[i]:
+                color = (PIXELS[2 * i + 1] << 8) | PIXELS[2 * i]
+                canvas.pixel(ys + (HEIGHT - 1 - y), xs + x, color)
+
+led1 = Pin(28, Pin.OUT)
+led1.off()
+
+print("rendering")
+draw_icon("a_unpressed", 64, 80)
+start = time.ticks_us()
+update_display()
+end = time.ticks_us()
+print(time.ticks_diff(end, start) / 1000)
 
 # led2 = Pin(4, Pin.OUT)
 # button_pins = [5, 6, 7, 8, 12, 13, 14, 15]

@@ -1,0 +1,8 @@
+W - increase value of current block
+A - go to the left block
+S - decrease value of current block
+D - go to the right block
+I - go to the above block
+J - UNDEF
+K - go to the below block
+L - UNDEF

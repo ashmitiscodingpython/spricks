@@ -1,0 +1,4 @@
++ on button start blocks = press once (and release) to start
+green - start blocks
+red - numbers
+blue - boolean
