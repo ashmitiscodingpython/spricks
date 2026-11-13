@@ -18,7 +18,7 @@
 #define PIN_DC   22
 #define PIN_LITE 17
 
-#define SPEED 8
+#define SPEED 24
 
 const uint8_t rotations[4] = {0x00, 0x60, 0xC0, 0xA0};
 #define ROTATION 0
@@ -153,6 +153,9 @@ void init_display () {
     gpio_init(26);
     gpio_set_dir(26, GPIO_OUT);
 
+    gpio_init(PIN_DC);
+    gpio_set_dir(PIN_DC, GPIO_OUT);
+
     gpio_put(26, 0);  // turn on reset
     sleep_ms(10);
 
@@ -219,9 +222,16 @@ void init_display () {
     writecommand(0x2B); // RASET (Row Address)
     write_data((uint8_t[]){0x00, 0x01, 0x00, 0x9F}, 4);
 
+    uint8_t pg[] = {0x02, 0x1c, 0x07, 0x12, 0x37, 0x32, 0x29, 0x2d, 0x29, 0x25, 0x2b, 0x39, 0x00, 0x01, 0x03, 0x10};
+    writecommand(0xE0); // Positive Gamma Correction (GMCTRP)
+    write_data(pg, sizeof(pg));
+
+    uint8_t ng[] = {0x03, 0x1d, 0x07, 0x06, 0x2e, 0x2c, 0x29, 0x2d, 0x2e, 0x2e, 0x37, 0x3f, 0x00, 0x00, 0x02, 0x10};
+    writecommand(0xE1); // Positive Gamma Correction (GMCTRN)
+    write_data(ng, sizeof(ng));
+
     gpio_init(PIN_LITE);
     gpio_set_dir(PIN_LITE, GPIO_OUT);
-    gpio_set_dir(PIN_DC, GPIO_OUT);
     gpio_put(PIN_LITE, 1);
     sleep_ms(1500);
     clear();
